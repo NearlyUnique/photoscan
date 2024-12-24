@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -33,13 +34,19 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	d := decoderWalker{}
+	d := DecoderWalker{}
 	if v, err := d.decode(metaData); err != nil {
 		fmt.Printf("%v\n", err)
 	} else {
 		fmt.Printf("%v\n", v)
 	}
-	jsonByte, err = metaData.MarshalJSON()
+	walk := NewDecoderWalker()
+	err = metaData.Walk(walk)
+	if len(walk.errors) > 0 {
+		log.Println(walk.errors)
+	}
+	jsonByte, err = json.Marshal(walk.data)
+	//jsonByte, err = metaData.MarshalJSON()
 	if err != nil {
 		log.Fatal(err.Error())
 	}

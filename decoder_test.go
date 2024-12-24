@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"github.com/rwcarlsen/goexif/tiff"
 	"testing"
 
@@ -38,13 +37,10 @@ const (
 )
 
 func Test_single_32bit_integer(t *testing.T) {
-	w := decoderWalker{}
+	w := DecoderWalker{}
 	w.data = make(map[string]any)
 
-	data := buildInput(
-		input{"0001", InputDTInt32, "00000002", "000A" + "0000", ""},
-		binary.BigEndian,
-	)
+	data := buildInput(InputDTInt32, 10, "")
 	raw := bytes.NewReader(data)
 	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
 	assert.NoError(t, err)
@@ -52,14 +48,11 @@ func Test_single_32bit_integer(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 10, w.data["one"])
 }
-func Test_single_r(t *testing.T) {
-	w := decoderWalker{}
+func Test_single_rational(t *testing.T) {
+	w := DecoderWalker{}
 	w.data = make(map[string]any)
 
-	data := buildInput(
-		input{"0001", InputDTRational, "00000001", "00000010", "00000019" + "00000064"},
-		binary.BigEndian,
-	)
+	data := buildInput(InputDTRational, 1, I4(25, 100))
 	raw := bytes.NewReader(data)
 	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
 	assert.NoError(t, err)
@@ -67,26 +60,54 @@ func Test_single_r(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 0.25, w.data["one"])
 }
-func buildInput(in input, order binary.ByteOrder) []byte {
-	data := make([]byte, 0)
-	d, _ := hex.DecodeString(in.tgId)
-	data = append(data, d...)
-	d, _ = hex.DecodeString(in.tpe)
-	data = append(data, d...)
-	d, _ = hex.DecodeString(in.nVals)
-	data = append(data, d...)
-	d, _ = hex.DecodeString(in.offset)
-	data = append(data, d...)
+func Test_multiple_rational(t *testing.T) {
+	w := DecoderWalker{}
+	w.data = make(map[string]any)
 
-	if in.val != "" {
-		off := order.Uint32(d)
-		for i := 0; i < int(off)-12; i++ {
-			data = append(data, 0xFF)
-		}
+	data := buildInput(InputDTRational, 3, I4(25, 100)+I4(50, 1000)+I4(75, 10))
+	raw := bytes.NewReader(data)
+	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
+	assert.NoError(t, err)
+	err = w.Walk("one", tag)
+	assert.NoError(t, err)
+	assert.Equal(t, []float64{0.25, 0.05, 7.5}, w.data["one"])
+}
+func Test_single_string(t *testing.T) {
+	w := DecoderWalker{}
+	w.data = make(map[string]any)
 
-		d, _ = hex.DecodeString(in.val)
-		data = append(data, d...)
-	}
+	data := buildInput(InputDTAscii, 6, "abcdef")
+	raw := bytes.NewReader(data)
+	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
+	assert.NoError(t, err)
+	err = w.Walk("one", tag)
+	assert.NoError(t, err)
+	assert.Equal(t, "abcdef", w.data["one"])
+}
 
-	return data
+func Test_single_DateTime(t *testing.T) {
+	w := DecoderWalker{}
+	w.data = make(map[string]any)
+
+	data := buildInput(InputDTAscii, 0, "2019:10:11 19:05:41")
+	raw := bytes.NewReader(data)
+	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
+	assert.NoError(t, err)
+	err = w.Walk("DateTime", tag)
+	assert.NoError(t, err)
+	assert.Equal(t, "2019-10-11 19:05:41", w.data["DateTime"])
+}
+
+func Test_single_GPS(t *testing.T) {
+	w := DecoderWalker{}
+	w.data = make(map[string]any)
+
+	// "52/1","11/1","26750/1000"
+	data := buildInput(InputDTAscii, 0, "")
+	raw := bytes.NewReader(data)
+	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
+	assert.NoError(t, err)
+	err = w.Walk("DateTime", tag)
+	assert.NoError(t, err)
+	assert.Equal(t, "2019-10-11 19:05:41", w.data["DateTime"])
 }
