@@ -16,6 +16,11 @@ func I2_(v int) string {
 	return fmt.Sprintf("%04X0000", v)
 }
 
+// I1 1 byte int in 4 bytes, big endian
+func I1_(v int) string {
+	return fmt.Sprintf("%02X000000", v)
+}
+
 // I4 4 byte int
 func I4(nums ...int) string {
 	r := ""
@@ -40,9 +45,15 @@ func buildInput(typeStr string, valueCount int, dataStr string) []byte {
 		value = I4(len(dataStr))
 		lengthStr = I4(4 + len(dataStr) + 2) // bytes used to store length
 		dataStr = Ascii(dataStr)
-	case InputDTInt32:
+	case InputDTByte,
+		InputDTInt32:
 		// if the dataStr fits in 32 bits then it goes in the nVal
-		lengthStr = I2_(valueCount)
+		switch typeStr {
+		case InputDTByte:
+			lengthStr = I1_(valueCount)
+		case InputDTInt32:
+			lengthStr = I2_(valueCount)
+		}
 		value = I4(2)
 		dataStr = ""
 	}

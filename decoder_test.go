@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/tiff"
 	"testing"
 
@@ -36,95 +37,35 @@ const (
 	InputValuesCount2 = "00000002"
 )
 
-func Test_single_32bit_integer(t *testing.T) {
+func Test_input_values(t *testing.T) {
 	w := DecoderWalker{}
 	w.data = make(map[string]any)
-
-	data := buildInput(InputDTInt32, 10, "")
-	raw := bytes.NewReader(data)
-	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
-	assert.NoError(t, err)
-	err = w.Walk("one", tag)
-	assert.NoError(t, err)
-	assert.Equal(t, 10, w.data["one"])
-}
-func Test_single_rational(t *testing.T) {
-	w := DecoderWalker{}
-	w.data = make(map[string]any)
-
-	data := buildInput(InputDTRational, 1, I4(25, 100))
-	raw := bytes.NewReader(data)
-	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
-	assert.NoError(t, err)
-	err = w.Walk("one", tag)
-	assert.NoError(t, err)
-	assert.Equal(t, 0.25, w.data["one"])
-}
-func Test_multiple_rational(t *testing.T) {
-	w := DecoderWalker{}
-	w.data = make(map[string]any)
-
-	data := buildInput(InputDTRational, 3, I4(25, 100)+I4(50, 1000)+I4(75, 10))
-	raw := bytes.NewReader(data)
-	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
-	assert.NoError(t, err)
-	err = w.Walk("one", tag)
-	assert.NoError(t, err)
-	assert.Equal(t, []float64{0.25, 0.05, 7.5}, w.data["one"])
-}
-func Test_single_string(t *testing.T) {
-	w := DecoderWalker{}
-	w.data = make(map[string]any)
-
-	data := buildInput(InputDTAscii, 6, "abcdef")
-	raw := bytes.NewReader(data)
-	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
-	assert.NoError(t, err)
-	err = w.Walk("one", tag)
-	assert.NoError(t, err)
-	assert.Equal(t, "abcdef", w.data["one"])
-}
-
-func Test_single_DateTime(t *testing.T) {
-	w := DecoderWalker{}
-	w.data = make(map[string]any)
-
-	data := buildInput(InputDTAscii, 0, "2019:10:11 19:05:41")
-	raw := bytes.NewReader(data)
-	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
-	assert.NoError(t, err)
-	err = w.Walk("DateTime", tag)
-	assert.NoError(t, err)
-	assert.Equal(t, "2019-10-11 19:05:41", w.data["DateTime"])
-}
-
-func Test_single_GPS(t *testing.T) {
-	w := DecoderWalker{}
-	w.data = make(map[string]any)
-
-	data := buildInput(InputDTRational, 3, I4(
-		52, 1,
-		12, 1,
-		30000, 987))
-	raw := bytes.NewReader(data)
-	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
-	assert.NoError(t, err)
-	err = w.Walk("GPSLatitude", tag)
-	assert.NoError(t, err)
-	assert.Equal(t, "52°12'30.3951\"", w.data["GPSLatitude"])
-}
-func Test_single_GPS_Time(t *testing.T) {
-	w := DecoderWalker{}
-	w.data = make(map[string]any)
-
-	data := buildInput(InputDTRational, 3, I4(
-		18, 1,
-		5, 1,
-		33, 1))
-	raw := bytes.NewReader(data)
-	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
-	assert.NoError(t, err)
-	err = w.Walk("GPSTimeStamp", tag)
-	assert.NoError(t, err)
-	assert.Equal(t, "18:05:33", w.data["GPSTimeStamp"])
+	testData := map[string]struct {
+		expected any
+		data     []byte
+	}{
+		"a byte":         {byte(255), buildInput(InputDTByte, 255, "")},
+		"32 bit integer": {10, buildInput(InputDTInt32, 10, "")},
+		"rational":       {0.25, buildInput(InputDTRational, 1, I4(25, 100))},
+		"rational array": {[]float64{0.25, 0.05, 7.5}, buildInput(InputDTRational, 3, I4(25, 100)+I4(50, 1000)+I4(75, 10))},
+		"string":         {"abcdef", buildInput(InputDTAscii, 6, "abcdef")},
+		// The following keys are "special"
+		"DateTime": {"2019-10-11 19:05:41", buildInput(InputDTAscii, 0, "2019:10:11 19:05:41")},
+		"GPSLatitude": {"52°12'30.3951\"", buildInput(InputDTRational, 3, I4(
+			52, 1,
+			12, 1,
+			30000, 987))},
+		"GPSTimeStamp": {"18:05:33", buildInput(InputDTRational, 3, I4(
+			18, 1,
+			5, 1,
+			33, 1))},
+	}
+	for name, td := range testData {
+		raw := bytes.NewReader(td.data)
+		tag, err := tiff.DecodeTag(raw, binary.BigEndian)
+		assert.NoError(t, err)
+		err = w.Walk(exif.FieldName(name), tag)
+		assert.NoError(t, err)
+		assert.Equal(t, td.expected, w.data[name])
+	}
 }
