@@ -42,9 +42,9 @@ func main() {
 	}
 	walk := NewDecoderWalker()
 	err = metaData.Walk(walk)
-	if len(walk.errors) > 0 {
-		log.Println(walk.errors)
-	}
+	//if len(walk.errors) > 0 {
+	//	log.Println(walk.errors)
+	//}
 	jsonByte, err = json.Marshal(walk.data)
 	//jsonByte, err = metaData.MarshalJSON()
 	if err != nil {

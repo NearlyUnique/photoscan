@@ -102,12 +102,14 @@ func Test_single_GPS(t *testing.T) {
 	w := DecoderWalker{}
 	w.data = make(map[string]any)
 
-	// "52/1","11/1","26750/1000"
-	data := buildInput(InputDTAscii, 0, "")
+	data := buildInput(InputDTRational, 3, I4(
+		52, 1,
+		12, 1,
+		30000, 987))
 	raw := bytes.NewReader(data)
 	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
 	assert.NoError(t, err)
-	err = w.Walk("DateTime", tag)
+	err = w.Walk("GPSLatitude", tag)
 	assert.NoError(t, err)
-	assert.Equal(t, "2019-10-11 19:05:41", w.data["DateTime"])
+	assert.Equal(t, "52°12'30.3951\"", w.data["GPSLatitude"])
 }

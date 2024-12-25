@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/tiff"
+	"strconv"
 )
 
 type DecoderWalker struct {
@@ -13,22 +14,30 @@ type DecoderWalker struct {
 
 func (d *DecoderWalker) process(name string) {
 	switch name {
-	case "DateTime":
-	case "DateTimeDigitized":
-	case "DateTimeOriginal":
-	case "GPSDateStamp":
+	case "DateTime",
+		"DateTimeDigitized",
+		"DateTimeOriginal",
+		"GPSDateStamp":
 		v, ok := d.data[name].(string)
 		if ok && len(v) > 6 {
 			buf := []byte(v)
 			buf[4] = '-'
 			buf[7] = '-'
-			d.data[name] = string(buf)
+			v = string(buf)
+			d.data[name] = v
 		}
 		break
-		// case "GPSTimeStamp":
-		// break
-		// case "GPSLongitude":
-		// case "GPSLatitude":
+	// case "GPSTimeStamp":
+	// break
+	case "GPSLatitude",
+		"GPSLongitude":
+		v, ok := d.data[name].([]float64)
+		if ok && len(v) == 3 {
+			d.data[name] =
+				strconv.FormatFloat(v[0], 'f', 0, 64) + "°" +
+					strconv.FormatFloat(v[1], 'f', 0, 64) + "'" +
+					strconv.FormatFloat(v[2], 'f', 4, 64) + "\""
+		}
 	}
 }
 func (d *DecoderWalker) Walk(name exif.FieldName, tag *tiff.Tag) error {
@@ -39,8 +48,19 @@ func (d *DecoderWalker) Walk(name exif.FieldName, tag *tiff.Tag) error {
 		d.data[string(name)], err = tag.StringVal()
 	case tiff.DTShort:
 		d.data[string(name)], err = tag.Int(0)
+	case tiff.DTByte:
+		d.data[string(name)] = "?"
+		d.errors = append(d.errors, fmt.Sprintf("%s (unknown tag=%v)", name, tag.Type))
+	case tiff.DTLong:
+		d.data[string(name)] = "?"
+		d.errors = append(d.errors, fmt.Sprintf("%s (unknown tag=%v)", name, tag.Type))
+	case tiff.DTSRational:
+		d.data[string(name)] = "?"
+		d.errors = append(d.errors, fmt.Sprintf("%s (unknown tag=%v)", name, tag.Type))
 	case tiff.DTRational:
 		err = d.extractRational(name, tag)
+	case tiff.DTUndefined:
+		break
 	default:
 		d.errors = append(d.errors, fmt.Sprintf("%s (unknown tag=%v)", name, tag.Type))
 		//err = errors.New("not implemented")
