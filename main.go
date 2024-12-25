@@ -34,27 +34,16 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	d := DecoderWalker{}
-	if v, err := d.decode(metaData); err != nil {
-		fmt.Printf("%v\n", err)
-	} else {
-		fmt.Printf("%v\n", v)
-	}
 	walk := NewDecoderWalker()
 	err = metaData.Walk(walk)
-	//if len(walk.errors) > 0 {
-	//	log.Println(walk.errors)
-	//}
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	jsonByte, err = json.Marshal(walk.data)
-	//jsonByte, err = metaData.MarshalJSON()
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
 	jsonString = string(jsonByte)
 	fmt.Println(jsonString)
-	//
-	//fmt.Println("Make: " + gjson.Get(jsonString, "Make").String())
-	//fmt.Println("Model: " + gjson.Get(jsonString, "Model").String())
-	//fmt.Println("Software: " + gjson.Get(jsonString, "Software").String())
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/tiff"
-	"strconv"
 )
 
 type DecoderWalker struct {
@@ -27,16 +26,18 @@ func (d *DecoderWalker) process(name string) {
 			d.data[name] = v
 		}
 		break
-	// case "GPSTimeStamp":
-	// break
+	case "GPSTimeStamp":
+		v, ok := d.data[name].([]float64)
+		if ok && len(v) == 3 {
+			d.data[name] =
+				fmt.Sprintf("%02d:%02d:%02d", int(v[0]), int(v[1]), int(v[2]))
+		}
 	case "GPSLatitude",
 		"GPSLongitude":
 		v, ok := d.data[name].([]float64)
 		if ok && len(v) == 3 {
 			d.data[name] =
-				strconv.FormatFloat(v[0], 'f', 0, 64) + "°" +
-					strconv.FormatFloat(v[1], 'f', 0, 64) + "'" +
-					strconv.FormatFloat(v[2], 'f', 4, 64) + "\""
+				fmt.Sprintf("%.0f\u00b0%.0f'%.4f\"", v[0], v[1], v[2])
 		}
 	}
 }

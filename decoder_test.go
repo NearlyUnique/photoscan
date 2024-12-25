@@ -113,3 +113,18 @@ func Test_single_GPS(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "52°12'30.3951\"", w.data["GPSLatitude"])
 }
+func Test_single_GPS_Time(t *testing.T) {
+	w := DecoderWalker{}
+	w.data = make(map[string]any)
+
+	data := buildInput(InputDTRational, 3, I4(
+		18, 1,
+		5, 1,
+		33, 1))
+	raw := bytes.NewReader(data)
+	tag, err := tiff.DecodeTag(raw, binary.BigEndian)
+	assert.NoError(t, err)
+	err = w.Walk("GPSTimeStamp", tag)
+	assert.NoError(t, err)
+	assert.Equal(t, "18:05:33", w.data["GPSTimeStamp"])
+}
