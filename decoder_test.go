@@ -11,18 +11,18 @@ import (
 )
 
 type input struct {
-	tgId   string
-	tpe    string
-	nVals  string
-	offset string
-	val    string
+	tagID      string
+	dataType   string
+	valueCount string
+	offset     string
+	val        string
 }
 
 const (
 	InputDTByte      = "0001"
 	InputDTAscii     = "0002"
-	InputDTInt32     = "0003"
-	InputDTInt64     = "0004"
+	InputDTShort     = "0003"
+	InputDTLong      = "0004"
 	InputDTRational  = "0005"
 	InputDTSInt32    = "0008"
 	InputDTSByte     = "0006"
@@ -45,7 +45,10 @@ func Test_input_values(t *testing.T) {
 		data     []byte
 	}{
 		"a byte":         {byte(255), buildInput(InputDTByte, 255, "")},
-		"32 bit integer": {10, buildInput(InputDTInt32, 10, "")},
+		"a signed byte":  {int8(-8), buildInput(InputDTSByte, 248, "")},
+		"32 bit integer": {10, buildInput(InputDTShort, 10, "")},
+		"64 bit integer": {int64(0x01_23_45_67_8a_bc_de_f0), buildInput(InputDTLong, 2,
+			I4(0x01234567, 0x8abcdef0))},
 		"rational":       {0.25, buildInput(InputDTRational, 1, I4(25, 100))},
 		"rational array": {[]float64{0.25, 0.05, 7.5}, buildInput(InputDTRational, 3, I4(25, 100)+I4(50, 1000)+I4(75, 10))},
 		"string":         {"abcdef", buildInput(InputDTAscii, 6, "abcdef")},
@@ -61,11 +64,14 @@ func Test_input_values(t *testing.T) {
 			33, 1))},
 	}
 	for name, td := range testData {
-		raw := bytes.NewReader(td.data)
-		tag, err := tiff.DecodeTag(raw, binary.BigEndian)
-		assert.NoError(t, err)
-		err = w.Walk(exif.FieldName(name), tag)
-		assert.NoError(t, err)
-		assert.Equal(t, td.expected, w.data[name])
+		t.Run(name, func(t *testing.T) {
+			raw := bytes.NewReader(td.data)
+			tag, err := tiff.DecodeTag(raw, binary.BigEndian)
+			assert.NoError(t, err)
+			err = w.Walk(exif.FieldName(name), tag)
+			assert.NoError(t, err)
+			assert.Equal(t, td.expected, w.data[name])
+			// 81985529234382576
+		})
 	}
 }

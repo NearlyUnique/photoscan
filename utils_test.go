@@ -39,34 +39,36 @@ func Ascii(str string) string {
 
 func buildInput(typeStr string, valueCount int, dataStr string) []byte {
 	lengthStr := I4(4 + len(dataStr)) // bytes used to store length
-	value := I4(valueCount)
+	valueOrCount := I4(valueCount)
 	switch typeStr {
 	case InputDTAscii:
-		value = I4(len(dataStr))
+		valueOrCount = I4(len(dataStr))
 		lengthStr = I4(4 + len(dataStr) + 2) // bytes used to store length
 		dataStr = Ascii(dataStr)
-	case InputDTByte,
-		InputDTInt32:
+	case InputDTLong:
+		lengthStr = I4(len(dataStr))
+	case InputDTByte, InputDTSByte,
+		InputDTShort:
 		// if the dataStr fits in 32 bits then it goes in the nVal
 		switch typeStr {
-		case InputDTByte:
+		case InputDTByte, InputDTSByte:
 			lengthStr = I1_(valueCount)
-		case InputDTInt32:
+		case InputDTShort:
 			lengthStr = I2_(valueCount)
 		}
-		value = I4(2)
+		valueOrCount = I4(2)
 		dataStr = ""
 	}
-	// input{"0001", InputDTInt32, "00000002", "000A" + "0000", ""},
-	in := input{I2(1), typeStr, value, lengthStr, dataStr}
+	//input   {"0001", "0004", "00000002", "00000010", "1112131415161718"},
+	in := input{I2(1), typeStr, valueOrCount, lengthStr, dataStr}
 	order := binary.BigEndian
 
 	data := make([]byte, 0)
-	d, _ := hex.DecodeString(in.tgId)
+	d, _ := hex.DecodeString(in.tagID)
 	data = append(data, d...)
-	d, _ = hex.DecodeString(in.tpe)
+	d, _ = hex.DecodeString(in.dataType)
 	data = append(data, d...)
-	d, _ = hex.DecodeString(in.nVals)
+	d, _ = hex.DecodeString(in.valueCount)
 	data = append(data, d...)
 	d, _ = hex.DecodeString(in.offset)
 	data = append(data, d...)

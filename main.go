@@ -18,6 +18,7 @@ func main() {
 	var jsonString string
 
 	filePath := flag.String("file", "", "file o read")
+	indent := flag.Bool("pretty", true, "pretty json output")
 	flag.Parse()
 	if *filePath == "" {
 		fmt.Println("missing -file")
@@ -39,7 +40,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	jsonByte, err = json.Marshal(walk.data)
+	if len(walk.errors) > 0 {
+		walk.data["_errors"] = walk.errors
+	}
+	if *indent {
+		jsonByte, err = json.MarshalIndent(walk.data, "", "  ")
+	} else {
+		jsonByte, err = json.Marshal(walk.data)
+	}
 	if err != nil {
 		log.Fatal(err.Error())
 	}

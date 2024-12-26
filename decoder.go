@@ -53,9 +53,15 @@ func (d *DecoderWalker) Walk(name exif.FieldName, tag *tiff.Tag) error {
 		var v int
 		v, err = tag.Int(0)
 		d.data[string(name)] = byte(v)
+	case tiff.DTSByte:
+		var v int
+		v, err = tag.Int(0)
+		d.data[string(name)] = int8(v)
 	case tiff.DTLong:
-		d.data[string(name)] = "?"
-		d.errors = append(d.errors, fmt.Sprintf("%s (unknown tag=%v)", name, tag.Type))
+		var v1, v2 int64
+		v1, err = tag.Int64(0)
+		v2, err = tag.Int64(1)
+		d.data[string(name)] = (v1 << 32) | v2
 	case tiff.DTSRational:
 		d.data[string(name)] = "?"
 		d.errors = append(d.errors, fmt.Sprintf("%s (unknown tag=%v)", name, tag.Type))
