@@ -60,12 +60,19 @@ func (d *DecoderWalker) Walk(name exif.FieldName, tag *tiff.Tag) error {
 	case tiff.DTLong:
 		var v1, v2 int64
 		v1, err = tag.Int64(0)
-		v2, err = tag.Int64(1)
-		d.data[string(name)] = (v1 << 32) | v2
-	case tiff.DTSRational:
-		d.data[string(name)] = "?"
-		d.errors = append(d.errors, fmt.Sprintf("%s (unknown tag=%v)", name, tag.Type))
-	case tiff.DTRational:
+		switch tag.Count {
+		case 1:
+			d.data[string(name)] = v1
+		case 2:
+			v2, err = tag.Int64(1)
+			d.data[string(name)] = (v1 << 32) | v2
+		default:
+			d.errors = append(d.errors, fmt.Sprintf("%s (DTLong, Count=%v)", name, tag.Count))
+		}
+	//case tiff.DTSRational:
+	//	d.data[string(name)] = "?"
+	//	d.errors = append(d.errors, fmt.Sprintf("%s (unknown tag=%v)", name, tag.Type))
+	case tiff.DTRational, tiff.DTSRational:
 		err = d.extractRational(name, tag)
 	case tiff.DTUndefined:
 		break
