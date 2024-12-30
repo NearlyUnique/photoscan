@@ -49,10 +49,11 @@ func Test_input_values(t *testing.T) {
 		"32 bit integer": {10, buildInput(InputDTShort, 10, "")},
 		"64 bit integer": {int64(0x01_23_45_67_8a_bc_de_f0), buildInput(InputDTLong, 2,
 			I4(0x01234567, 0x8abcdef0))},
-		"rational":        {0.25, buildInput(InputDTRational, 1, I4(25, 100))},
-		"signed rational": {0.25, buildInput(InputDTSRational, 1, I4(25, 100))},
-		"rational array":  {[]float64{0.25, 0.05, 7.5}, buildInput(InputDTRational, 3, I4(25, 100)+I4(50, 1000)+I4(75, 10))},
-		"string":          {"abcdef", buildInput(InputDTAscii, 6, "abcdef")},
+		"rational":                   {0.25, buildInput(InputDTRational, 1, I4(25, 100))},
+		"signed rational":            {0.25, buildInput(InputDTSRational, 1, I4(25, 100))},
+		"rational array":             {[]float64{0.25, 0.05, 7.5}, buildInput(InputDTRational, 3, I4(25, 100)+I4(50, 1000)+I4(75, 10))},
+		"string":                     {"abcdef", buildInput(InputDTAscii, 0, "abcdef")},
+		"string with trailign space": {"VALUE", buildInput(InputDTAscii, 0, "VALUE   ")},
 		// The following keys are "special"
 		"DateTime": {"2019-10-11 19:05:41", buildInput(InputDTAscii, 0, "2019:10:11 19:05:41")},
 		"GPSLatitude": {"52°12'30.3951\"", buildInput(InputDTRational, 3, I4(

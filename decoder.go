@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/tiff"
+	"strings"
 )
 
 type DecoderWalker struct {
@@ -46,7 +47,9 @@ func (d *DecoderWalker) Walk(name exif.FieldName, tag *tiff.Tag) error {
 
 	switch tag.Type {
 	case tiff.DTAscii:
-		d.data[string(name)], err = tag.StringVal()
+		var str string
+		str, err = tag.StringVal()
+		d.data[string(name)] = strings.Trim(str, " ")
 	case tiff.DTShort:
 		d.data[string(name)], err = tag.Int(0)
 	case tiff.DTByte:
