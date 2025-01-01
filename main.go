@@ -1,9 +1,12 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 
@@ -22,21 +25,27 @@ func main() {
 		return
 	}
 	mainLog := logger.With("file", *filePath)
+	file := &FileOpener{Filename: *filePath}
+	defer func() {
+		if err := file.Close(); err != nil {
+			mainLog.Error("close_file", slog.String("error", err.Error()))
+		}
+	}()
 
-	err := processFile(*filePath, *indent)
+	err := processFile(file, *indent)
 	if err != nil {
 		mainLog.Error("processFile", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 }
-func processFile(filePath string, indent bool) error {
+func processFile(file *FileOpener, indent bool) error {
 	var err error
 	var imgFile *os.File
 	var metaData *exif.Exif
 	var jsonByte []byte
 	var jsonString string
 
-	imgFile, err = os.Open(filePath)
+	imgFile, err = file.Open()
 	if err != nil {
 		return fmt.Errorf("open_file:%w", err)
 	}
@@ -54,6 +63,12 @@ func processFile(filePath string, indent bool) error {
 	if len(walk.errors) > 0 {
 		walk.data["_errors"] = walk.errors
 	}
+	var h string
+	h, err = hash(file)
+	if err != nil {
+		return fmt.Errorf("file_hash:%w", err)
+	}
+	walk.data["file_hash"] = string(h)
 	if indent {
 		jsonByte, err = json.MarshalIndent(walk.data, "", "  ")
 	} else {
@@ -67,4 +82,19 @@ func processFile(filePath string, indent bool) error {
 	fmt.Println(jsonString)
 
 	return nil
+}
+func hash(file *FileOpener) (string, error) {
+
+	f, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("file_open:%w", err)
+	}
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", fmt.Errorf("calc_sha256:%w", err)
+	}
+	buf := h.Sum(nil)
+	hashStr := hex.EncodeToString(buf)
+	return hashStr, nil
 }
