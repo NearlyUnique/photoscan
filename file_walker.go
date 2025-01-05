@@ -12,6 +12,7 @@ type ProcessorConfig struct {
 	RootPath   string
 	IndentJSON bool
 	Debug      bool
+	MaxError   int
 }
 
 func shouldIgnoreFile(name string) bool {
@@ -28,46 +29,59 @@ func shouldSkipDir(name string) error {
 	}
 	ext := strings.ToLower(path.Ext(name))
 	switch ext {
-	case "node_modules":
+	case "@eaDir", // NAS meta folders
+		"node_modules": // node development
 		return filepath.SkipDir
 	}
 	return nil
 }
 func recursiveFileProcessor(config ProcessorConfig, logger *slog.Logger) error {
+	errorCount := 0
 	err := filepath.WalkDir(config.RootPath, func(path string, d fs.DirEntry, inErr error) error {
 		if inErr != nil {
 			return inErr
 		}
+		walkLog := logger.With(slog.String("full_path", path))
 		if d.IsDir() {
 			skip := shouldSkipDir(d.Name())
 			if config.Debug && skip != nil {
-				logger.With(slog.String("directory_name", d.Name())).Info("dir_skipped")
+				walkLog.
+					With(slog.String("directory_name", d.Name())).
+					Info("dir_skipped")
 			}
 			return skip
 		}
 		if shouldIgnoreFile(d.Name()) {
 			if config.Debug {
-				logger.With(slog.String("file_name", d.Name())).Info("file_skipped")
+				walkLog.
+					With(slog.String("file_name", d.Name())).
+					Info("file_skipped")
 			}
 			return nil
 		}
-		filename := d.Name()
-		loopLogger := logger.With("file", filename)
-		file := &FileOpener{Filename: filename}
+		file := &FileOpener{Filename: d.Name()}
 		defer func() {
 			if err := file.Close(); err != nil {
-				loopLogger.Error("close_file", slog.String("error", err.Error()))
+				walkLog.
+					With(slog.String("file_name", d.Name())).
+					Error("close_file_error", slog.String("error", err.Error()))
 			}
 		}()
 
 		err := processFile(file, config.IndentJSON)
-		if config.Debug && err != nil {
-			logger.
-				With(
-					slog.String("error", d.Name()),
-					slog.String("file_name", d.Name()),
-				).
-				Debug("process_file_error")
+		if err != nil {
+			errorCount++
+			if config.Debug {
+				walkLog.
+					With(
+						slog.String("error", d.Name()),
+						slog.String("file_name", d.Name()),
+					).
+					Error("process_file_error")
+			}
+			if errorCount < config.MaxError || config.MaxError == -1 {
+				err = nil
+			}
 		}
 		return err
 	})
