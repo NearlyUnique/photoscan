@@ -19,7 +19,7 @@ func processFile(file *FileOpener, indent bool) error {
 
 	imgFile, err = file.Open()
 	if err != nil {
-		return fmt.Errorf("open_file:%w", err)
+		return fmt.Errorf("open_file:(%s) %w", file.Filename, err)
 	}
 
 	metaData, err = exif.Decode(imgFile)

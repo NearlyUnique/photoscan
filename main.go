@@ -16,7 +16,7 @@ func main() {
 
 	filePath := flag.String("file", "", "file o read")
 	indent := flag.Bool("pretty", true, "pretty json output")
-	maxError := flag.Int("mas-error", 100, "pretty json output")
+	maxError := flag.Int("max-error", 100, "pretty json output")
 	debug := flag.Bool("debug", false, "print extra info")
 	version := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
