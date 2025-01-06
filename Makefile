@@ -1,3 +1,4 @@
+include .env
 help:
 	cat Makefile|ag "[a-zA-Z-0-9]+:"
 
@@ -18,8 +19,6 @@ SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 .PHONY: all build clean install uninstall fmt simplify check run
 
-all: check install
-
 $(TARGET): $(SRC)
 	@GOOS=linux GOARCH=arm GOARM=5 go build $(LDFLAGS) -o $(TARGET)
 x86: $(SRC)
@@ -28,7 +27,7 @@ build: $(TARGET)
 	@true
 clean:
 	@rm -f $(TARGET)
-upload: clean build
-	scp $(TARGET) adam@diskstation:_install
+upload: clean build test
+	scp $(TARGET) ${NAS_UPLOAD}
 test:
 	go test ./... -v

@@ -1,4 +1,5 @@
 .idea
+.env
 photoscan*
 *.json
 sub1
