@@ -3,6 +3,7 @@ module github.com/nearlyunique/photoscan
 go 1.21.3
 
 require (
+	github.com/paulcager/osgridref v1.3.0
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd
 	github.com/stretchr/testify v1.10.0
 )

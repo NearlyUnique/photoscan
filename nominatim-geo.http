@@ -1,0 +1,7 @@
+# Tower of london 51.508530,-0.076132
+GET https://nominatim.openstreetmap.org/reverse
+    ?lat=51.508530
+    &lon=-0.076132
+    &format=jsonv2
+    &zoom=12
+    &addressdetails=1

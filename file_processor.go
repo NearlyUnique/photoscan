@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/rwcarlsen/goexif/exif"
 	"io"
+	"net/http"
 	"os"
 )
 
@@ -26,22 +27,30 @@ func processFile(file *FileOpener, indent bool) error {
 	if err != nil {
 		return fmt.Errorf("exif_decode:%w", err)
 	}
-
+	// exif
 	walk := NewDecoderWalker()
 	err = metaData.Walk(walk)
 	if err != nil {
 		return fmt.Errorf("walk:%w", err)
 	}
 	if len(walk.errors) > 0 {
-		walk.data["_errors"] = walk.errors
+		walk.data[AttrErrors] = walk.errors
 	}
-	walk.data["FilePath"] = file.Filename
+	walk.data[AttrFilePath] = file.Filename
+	// hash
 	var h string
 	h, err = hash(file)
 	if err != nil {
 		return fmt.Errorf("file_hash:%w", err)
 	}
-	walk.data["FileHash"] = h
+	walk.data[AttrFileHash] = h
+	// enrich
+	enrich := EnrichLocation{
+		client: &http.Client{},
+	}
+	err = enrich.Enrich(walk.data)
+	walk.data[AttrLocation] = enrich.values
+	// output
 	if indent {
 		jsonByte, err = json.MarshalIndent(walk.data, "", "  ")
 	} else {
